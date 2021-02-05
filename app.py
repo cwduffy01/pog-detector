@@ -2,7 +2,7 @@ from tkinter import *
 from tkinter.ttk import *
 import cv2
 from PIL import Image, ImageTk
-    
+
 root = Tk()     # begins Tk application
 
 cap = cv2.VideoCapture(0)
@@ -14,6 +14,11 @@ img = ImageTk.PhotoImage(image_pil)     # convert image to Tkinter Image
 
 panel = Label(root, image=img)  # create label object with image from camera stream
 panel.pack()
+
+btn_start = Button(root, text="Record", command=root.destroy)
+btn_end = Button(root, text="Stop", command=root.destroy)
+btn_start.pack()
+btn_end.pack()
 
 while(True):
     # capture new frame
@@ -30,6 +35,7 @@ root.mainloop()     # run GUI
 
 """
 TODO: Incorporate the following Widgets
+    - WRAP EVERYTHING GUI RELATED INTO ONE CLASS
     - Start/Stop Button: Button
 
     - File Location: Entry
