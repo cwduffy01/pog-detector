@@ -16,6 +16,7 @@ def record():
     FPS = 1000
     duration = 10
     blackArray = []
+    pogCount = 0
     
     while(True):
         start = time.time()
@@ -65,23 +66,32 @@ def record():
                 for a in range(len(mouth[0])):
                     if(mouth[i][a] < 25):
                         blackCount += 1
-            #adds to an array with all the blackCounts from the last 30 seconds
-            print(blackCount)
+                        
+            #makes sure there are 10 sample frames to start with
             if(len(blackArray) < 10):
                 blackArray.append(blackCount)
                 continue
+            
+            #finds the average from the blackCount list, if the current
+            #blackCount is 3x bigger than the average, it assumes they are pogging
+            isPogging = False
             average = sum(blackArray)/len(blackArray)
-            if(blackCount > average * 5):
-                print('is pogging')
+            if(blackCount > average * 3):
+                #print('is pogging')
+                isPogging = True
             else:
-                print('isnt pogging')
+                #print('isnt pogging')
+                isPogging = False
                 blackArray.append(blackCount)
-                
             if(len(blackArray) > 300):
                 blackArray.pop(0)
             
-                    
-        
+            #counts the number of consecutive frames the user is pogging
+            if(isPogging):
+                pogCount += 1
+            else:
+                pogCount = 0
+                       
         #shows face recording
         cv2.imshow('video', img)
     
@@ -90,8 +100,8 @@ def record():
         if(1/(end-start) < FPS):
             FPS = 1/(end-start)
             
-        #REPLACE WITH DA POG
-        if keyboard.is_pressed('q'):
+        #records the past 10 seconds once pogging
+        if(pogCount > 10):
             vid = cv2.VideoWriter("output.mp4", fourcc, FPS, (SCREEN_SIZE))
             for frame in temp:
                 vid.write(frame)
