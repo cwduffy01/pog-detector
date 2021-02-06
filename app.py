@@ -3,6 +3,7 @@ from tkinter.ttk import *
 import cv2
 from PIL import Image, ImageTk
 from datetime import datetime
+import os
 
 root = Tk()     # begins Tk application
 cap = cv2.VideoCapture(0)
@@ -13,15 +14,19 @@ class PogDetector:
     cap_length = 0      # the length of the video in seconds
     recording = False   # if the gui is actively recording
     detecting = False   # if the pog is being detected
+    dark_mode = False   # if dark mode is enabled
     frames = []         # collection of frames for pst cap_length seconds
+    logo = ImageTk.PhotoImage(Image.open("light_logo_small.png"))
 
     def __init__(self, frame_rate, cap_length):
         self.frame_rate = frame_rate
         self.cap_length = cap_length
 
         # create label object with image from camera stream
-        self.panel = Label(root, image=self.capture_frame())
-        self.panel.pack()
+        self.logo_panel = Label(root, image=self.logo)
+        self.camera_panel = Label(root, image=self.capture_frame())
+        self.logo_panel.pack()
+        self.camera_panel.pack()
 
         # create button objects
         self.btn_start = Button(root, text="Start", command=self.toggle_start)
@@ -51,9 +56,12 @@ class PogDetector:
 
     def record(self):
         if self.detecting:
+            if "clips" not in os.listdir():
+                os.mkdir("clips")
+
             date = datetime.now()
             date_string = datetime.strftime(date, "pog-%d_%m_%y-%I_%M_%S_%p")
-            out = cv2.VideoWriter(f'{date_string}.avi', fourcc, self.frame_rate, (640,480))
+            out = cv2.VideoWriter(f"clips/{date_string}.avi", fourcc, self.frame_rate, (640,480))
             for f in self.frames:
                 out.write(f)     # write each frame to 
             out.release()        # release video writer object
@@ -68,14 +76,19 @@ class PogDetector:
 pd = PogDetector(cap.get(cv2.CAP_PROP_FPS), 5)
 while(True):
     img = pd.capture_frame()    # reset label image
-    pd.panel["image"] = img
+    pd.camera_panel["image"] = img
     root.update()           # update GUI
 
 root.mainloop()     # run GUI
 
 """
-TODO: Incorporate the following Widgets
-    Display Logo
+TODO: Finishing Features
+    Replace buttons with images
+    Reformat GUI
+"""
+
+"""
+TODO: Extra Features
     Choose Directory Button
     Dark Theme
     Record Screen Toggle Button
