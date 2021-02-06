@@ -7,39 +7,39 @@ root = Tk()     # begins Tk application
 
 cap = cv2.VideoCapture(0)
 
-ret, frame = cap.read()     # frame: the actual frame read from the video feed
-image_cv2 = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # convert from BGR to RGB for PIL
-image_pil = Image.fromarray(image_cv2)  # convert image to PIL Image
-img = ImageTk.PhotoImage(image_pil)     # convert image to Tkinter Image
+class PogDetector:
+    def __init__(self):
+        self.panel = Label(root, image=self.capture_frame())  # create label object with image from camera stream
+        self.panel.pack()
 
-panel = Label(root, image=img)  # create label object with image from camera stream
-panel.pack()
+        self.btn_start = Button(root, text="Record", command=self.pressed)
+        self.btn_start.pack()
+        
+        self.recording = False
 
-btn_start = Button(root, text="Record", command=root.destroy)
-btn_end = Button(root, text="Stop", command=root.destroy)
-btn_start.pack()
-btn_end.pack()
+    def capture_frame(self):
+        ret, frame = cap.read()
+        image_cv2 = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        image_pil = Image.fromarray(image_cv2)
+        img = ImageTk.PhotoImage(image_pil)
+        return img
 
+    def pressed(self):
+        self.recording = not self.recording
+        print(self.recording)
+
+pd = PogDetector()
 while(True):
-    # capture new frame
-    ret, frame = cap.read()
-    image_cv2 = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    image_pil = Image.fromarray(image_cv2)
-    img = ImageTk.PhotoImage(image_pil)
-
-    panel["image"] = img    # reset label image
+    img = pd.capture_frame()    # reset label image
+    pd.panel["image"] = img
     root.update()           # update GUI
 
 root.mainloop()     # run GUI
 
-
 """
 TODO: Incorporate the following Widgets
-    - WRAP EVERYTHING GUI RELATED INTO ONE CLASS
     - Start/Stop Button: Button
-
     - File Location: Entry
     - Directories: Scrollbar/Spinbox?? Menu??
-
     - Dark mode
 """
