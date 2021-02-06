@@ -1,11 +1,13 @@
-from tkinter import * 
-from tkinter.ttk import *
+from tkinter import *
 import cv2
 from PIL import Image, ImageTk
 from datetime import datetime
 import os
 
 root = Tk()     # begins Tk application
+root.title("PogDetector™")
+root.geometry("720x660")
+root.resizable(False, False)
 cap = cv2.VideoCapture(0)
 fourcc = cv2.VideoWriter_fourcc(*'XVID')    # video codec
 
@@ -16,7 +18,7 @@ class PogDetector:
     detecting = False   # if the pog is being detected
     dark_mode = False   # if dark mode is enabled
     frames = []         # collection of frames for pst cap_length seconds
-    logo = ImageTk.PhotoImage(Image.open("light_logo_small.png"))
+    logo = ImageTk.PhotoImage(Image.open("light_logo.png"))
 
     def __init__(self, frame_rate, cap_length):
         self.frame_rate = frame_rate
@@ -25,16 +27,25 @@ class PogDetector:
         # create label object with image from camera stream
         self.logo_panel = Label(root, image=self.logo)
         self.camera_panel = Label(root, image=self.capture_frame())
-        self.logo_panel.pack()
-        self.camera_panel.pack()
+        self.logo_panel.place(anchor=N, y=15, x=360)
+        self.camera_panel.place(anchor=N, y=100, x=360)
 
         # create button objects
-        self.btn_start = Button(root, text="Start", command=self.toggle_start)
-        self.btn_end = Button(root, text="Stop", command=self.toggle_end)
-        self.btn_record = Button(root, text="Record", command=self.record)
-        self.btn_start.pack()
-        self.btn_end.pack()
-        self.btn_record.pack()
+        play = ImageTk.PhotoImage(Image.open("start.png"))
+        self.btn_start = Button(root, image=play, command=self.toggle_start, height=35, width=35)
+        self.btn_start.image = play
+
+        stop = ImageTk.PhotoImage(Image.open("stop.png"))
+        self.btn_end = Button(root, image=stop, command=self.toggle_end, height=35, width=35)
+        self.btn_end.image = stop
+
+        record = ImageTk.PhotoImage(Image.open("record.png"))
+        self.btn_record = Button(root, image=record, command=self.record, height=35, width=35)
+        self.btn_record.image = record
+
+        self.btn_start.place(anchor=N, y=600, x=360)
+        self.btn_end.place(anchor=N, y=600, x=410)
+        self.btn_record.place(anchor=N, y=600, x=310)
 
     def capture_frame(self):
         ret, frame = cap.read()                 # read frame from webcam
@@ -71,7 +82,6 @@ class PogDetector:
         # shorten frames to amount of frames in the videos
         if len(self.frames) > (int(self.frame_rate) * self.cap_length):
             self.frames.pop(0)
-        print(len(self.frames))
 
 pd = PogDetector(cap.get(cv2.CAP_PROP_FPS), 5)
 while(True):
@@ -80,12 +90,6 @@ while(True):
     root.update()           # update GUI
 
 root.mainloop()     # run GUI
-
-"""
-TODO: Finishing Features
-    Replace buttons with images
-    Reformat GUI
-"""
 
 """
 TODO: Extra Features
