@@ -5,7 +5,7 @@ import keyboard
 import time
 from PIL import Image
 
-faceCascade = cv2.CascadeClassifier(r'C:\Users\msapp\Desktop\Winning hackathon\haarcascade_frontalface_default.xml')
+faceCascade = cv2.CascadeClassifier(r'haarcascade_frontalface_default.xml')
 SCREEN_SIZE = (1920, 1080)
 fourcc = cv2.VideoWriter_fourcc(*"XVID")
 cap = cv2.VideoCapture(0)
@@ -42,6 +42,7 @@ def record():
         
         areas = []
         #draws box around the face and determines area to find the main (biggest) face if many are detected
+        print(len(faces))
         for (x,y,w,h) in faces:
             cv2.rectangle(img, (x,y), (x+w,y+h), (255, 0, 0), 2)
             roi_gray = gray[y:y+h, x:x+w]
@@ -60,12 +61,9 @@ def record():
             mouth = cv2.cvtColor(mouth, cv2.COLOR_BGR2GRAY)
             #Image.fromarray(mouth).show()
             
-            #detect black pixels
-            blackCount = 1;
-            for i in range(len(mouth)):
-                for a in range(len(mouth[0])):
-                    if(mouth[i][a] < 25):
-                        blackCount += 1
+            ret, black = cv2.threshold(mouth, 25, 255, cv2.THRESH_BINARY_INV)
+            cv2.imshow("mouth", black)
+            blackCount = np.sum(black == 255)
                         
             #makes sure there are 10 sample frames to start with
             if(len(blackArray) < 10):
@@ -113,6 +111,4 @@ def record():
             cv2.destroyAllWindows()
             break
     
-
 record()
-    
