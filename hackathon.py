@@ -5,7 +5,7 @@ import keyboard
 import time
 from PIL import Image
 
-faceCascade = cv2.CascadeClassifier(r'haarcascade_frontalface_default.xml')
+faceCascade = cv2.CascadeClassifier(r'C:\Users\Scot\Desktop\Test\haarcascade_frontalface_default.xml')
 SCREEN_SIZE = (1920, 1080)
 fourcc = cv2.VideoWriter_fourcc(*"XVID")
 cap = cv2.VideoCapture(0)
@@ -14,9 +14,13 @@ def record():
     #creates variables
     temp = []
     FPS = 1000
-    duration = 10
+    duration = 15
     blackArray = []
     pogCount = 0
+    
+    readyToRecord = False
+    stopRecord = 0
+    framesAfterPog = 0
     
     while(True):
         start = time.time()
@@ -42,7 +46,6 @@ def record():
         
         areas = []
         #draws box around the face and determines area to find the main (biggest) face if many are detected
-        print(len(faces))
         for (x,y,w,h) in faces:
             cv2.rectangle(img, (x,y), (x+w,y+h), (255, 0, 0), 2)
             roi_gray = gray[y:y+h, x:x+w]
@@ -61,6 +64,7 @@ def record():
             mouth = cv2.cvtColor(mouth, cv2.COLOR_BGR2GRAY)
             #Image.fromarray(mouth).show()
             
+            #detect black pixels
             ret, black = cv2.threshold(mouth, 25, 255, cv2.THRESH_BINARY_INV)
             cv2.imshow("mouth", black)
             blackCount = np.sum(black == 255)
@@ -75,10 +79,10 @@ def record():
             isPogging = False
             average = sum(blackArray)/len(blackArray)
             if(blackCount > average * 3):
-                #print('is pogging')
+                print('is pogging')
                 isPogging = True
             else:
-                #print('isnt pogging')
+                print('isnt pogging')
                 isPogging = False
                 blackArray.append(blackCount)
             if(len(blackArray) > 300):
@@ -98,8 +102,17 @@ def record():
         if(1/(end-start) < FPS):
             FPS = 1/(end-start)
             
-        #records the past 10 seconds once pogging
-        if(pogCount > 10):
+        #if the past 10 recorded frames have been pogging, checks that its ready
+        if(pogCount > 10):     
+            readyToRecord = True
+        
+        #continues to record for an aditional 5 seconds after the pog has been first detected
+        if(readyToRecord and framesAfterPog < FPS*5 - 10):
+            framesAfterPog += 1
+        #if it has been 5 seconds since the intital pog, it saves the video
+        elif(readyToRecord):
+            readyToRecord = False
+            framesAfterPog = 0
             vid = cv2.VideoWriter("output.mp4", fourcc, FPS, (SCREEN_SIZE))
             for frame in temp:
                 vid.write(frame)
@@ -111,4 +124,6 @@ def record():
             cv2.destroyAllWindows()
             break
     
+
 record()
+
