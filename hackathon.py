@@ -24,18 +24,28 @@ def record():
     
     while(True):
         start = time.time()
-        #takes picture of screen
-        img = pyautogui.screenshot()
-        frame = np.array(img)
-        #convert colors from BGR to RGB
+        
+        #takes picture of screen in Image type, converts the colors, and turns it back into an image
+        frame = pyautogui.screenshot()
+        frame = np.array(frame)
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        #deletes the first image if necessary
-        temp.append(frame)
+        framePic = Image.fromarray(frame)
+        
+        #takes picture of face cam as np array and converts to image
+        ret, img = cap.read()
+        imagePic = Image.fromarray(img)
+        imagePic = imagePic.resize((int(len(img[0])/2), int(len(img)/2)))
+        
+        #puts face cam in the top left of the screen cap
+        framePic.paste(imagePic)
+        overlaid = np.asarray(framePic)
+        
+        #adds the new overlaid frame and deletes the first image if necessary
+        temp.append(overlaid)
         if(len(temp) > FPS * duration):
             temp.pop(0)
         
-        #Face recording========================================================
-        ret, img = cap.read()
+        #Face recognition==========================================================================
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         faces = faceCascade.detectMultiScale(
             gray,     
@@ -62,7 +72,6 @@ def record():
             #convert back to array
             mouth = np.asarray(cropped)
             mouth = cv2.cvtColor(mouth, cv2.COLOR_BGR2GRAY)
-            #Image.fromarray(mouth).show()
             
             #detect black pixels
             ret, black = cv2.threshold(mouth, 25, 255, cv2.THRESH_BINARY_INV)
@@ -78,11 +87,12 @@ def record():
             #blackCount is 3x bigger than the average, it assumes they are pogging
             isPogging = False
             average = sum(blackArray)/len(blackArray)
+            print(average)
             if(blackCount > average * 3):
-                print('is pogging')
+                #print('is pogging')
                 isPogging = True
             else:
-                print('isnt pogging')
+                #print('isnt pogging')
                 isPogging = False
                 blackArray.append(blackCount)
             if(len(blackArray) > 300):
@@ -116,6 +126,7 @@ def record():
             vid = cv2.VideoWriter("output.mp4", fourcc, FPS, (SCREEN_SIZE))
             for frame in temp:
                 vid.write(frame)
+            print('Releasing video')
             vid.release()
             
         #REPLACE WITH CLICKING STOP BUTTON
