@@ -4,8 +4,9 @@ import pyautogui
 import keyboard
 import time
 from PIL import Image
+import moviepy.editor as mpe
 
-faceCascade = cv2.CascadeClassifier(r'C:\Users\Scot\Desktop\Test\haarcascade_frontalface_default.xml')
+faceCascade = cv2.CascadeClassifier(r'C:\Users\msapp\Desktop\winning hackathon\haarcascade_frontalface_default.xml')
 SCREEN_SIZE = (1920, 1080)
 fourcc = cv2.VideoWriter_fourcc(*"XVID")
 cap = cv2.VideoCapture(0)
@@ -13,17 +14,18 @@ cap = cv2.VideoCapture(0)
 def record():
     #creates variables
     temp = []
-    FPS = 1000
+    start_times = []
     duration = 15
     blackArray = []
     pogCount = 0
+    pog_start = 0
     
     readyToRecord = False
     stopRecord = 0
     framesAfterPog = 0
     
     while(True):
-        start = time.time()
+        start_times.append(time.time())
         
         #takes picture of screen in Image type, converts the colors, and turns it back into an image
         frame = pyautogui.screenshot()
@@ -42,8 +44,9 @@ def record():
         
         #adds the new overlaid frame and deletes the first image if necessary
         temp.append(overlaid)
-        if(len(temp) > FPS * duration):
+        if(len(temp) > 200):
             temp.pop(0)
+            start_times.pop(0)
         
         #Face recognition==========================================================================
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -87,7 +90,6 @@ def record():
             #blackCount is 3x bigger than the average, it assumes they are pogging
             isPogging = False
             average = sum(blackArray)/len(blackArray)
-            print(average)
             if(blackCount > average * 3):
                 #print('is pogging')
                 isPogging = True
@@ -103,24 +105,23 @@ def record():
                 pogCount += 1
             else:
                 pogCount = 0
-                       
+                
         #shows face recording
-        cv2.imshow('video', img)
-    
-        #find minimum FPS so the video isnt sped up
-        end = time.time()
-        if(1/(end-start) < FPS):
-            FPS = 1/(end-start)
+        cv2.imshow('video', img)     
             
         #if the past 10 recorded frames have been pogging, checks that its ready
         if(pogCount > 10):     
             readyToRecord = True
-        
+            pog_start = time.time()
+            pogCount = -1000
+            
         #continues to record for an aditional 5 seconds after the pog has been first detected
-        if(readyToRecord and framesAfterPog < FPS*5 - 10):
+        if(readyToRecord and framesAfterPog < 75):
             framesAfterPog += 1
         #if it has been 5 seconds since the intital pog, it saves the video
         elif(readyToRecord):
+            endTime = time.time()
+            FPS = len(temp)/(endTime-start_times[0])
             readyToRecord = False
             framesAfterPog = 0
             vid = cv2.VideoWriter("output.mp4", fourcc, FPS, (SCREEN_SIZE))
@@ -128,6 +129,11 @@ def record():
                 vid.write(frame)
             print('Releasing video')
             vid.release()
+            #adding audio
+            video = mpe.VideoFileClip("output.mp4")
+            video = video.subclip(pog_start-start_times[0]-10-1, pog_start-start_times[0]+5-1)
+            video2 = video.set_audio(mpe.AudioFileClip("pogmusic.mp3"))
+            video2.write_videofile("output2.mp4", fps=FPS, codec="libx264") # mpeg4
             
         #REPLACE WITH CLICKING STOP BUTTON
         k = cv2.waitKey(30) & 0xff
@@ -137,4 +143,4 @@ def record():
     
 
 record()
-
+    
