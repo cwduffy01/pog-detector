@@ -3,25 +3,32 @@ import cv2
 from PIL import Image, ImageTk
 from datetime import datetime
 import os
+import numpy as np
 
 root = Tk()     # begins Tk application
 root.title("PogDetector™")
 root.geometry("720x660")
 root.resizable(False, False)
+
 cap = cv2.VideoCapture(0)
 fourcc = cv2.VideoWriter_fourcc(*'XVID')    # video codec
+faceCascade = cv2.CascadeClassifier(r'haarcascade_frontalface_default.xml')
 
 class PogDetector:
     frame_rate = 0      # the frame rate of the webcam in fps
     cap_length = 0      # the length of the video in seconds
     recording = False   # if the gui is actively recording
     detecting = False   # if the pog is being detected
-    dark_mode = False   # if dark mode is enabled
+    saving = False
     frames = []         # collection of frames for pst cap_length seconds
     logo = ImageTk.PhotoImage(Image.open("light_logo.png"))
+    black_values = []
+    pogs = []
 
-    def __init__(self, frame_rate, cap_length):
-        self.frame_rate = frame_rate
+    def __init__(self, cap, cap_length):
+        self.frame_rate = cap.get(cv2.CAP_PROP_FPS)
+        self.frame_size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+        print(self.frame_size)
         self.cap_length = cap_length
 
         # create label object with image from camera stream
@@ -53,29 +60,97 @@ class PogDetector:
         image_pil = Image.fromarray(image_cv2)  # convert to PIL image
         img = ImageTk.PhotoImage(image_pil)     # convert to Tkinter image
 
-        if self.detecting:  # save cv2 image to frames list
-            self.save_frame(frame)
+        no_box = frame.copy()
+
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        faces = faceCascade.detectMultiScale(
+            gray,     
+            scaleFactor=1.2,
+            minNeighbors=4,     
+            minSize=(30, 30)
+        )
+
+        areas = []
+        for (x,y,w,h) in faces:
+            cv2.rectangle(frame, (x,y), (x+w,y+h), (255, 0, 0), 2)
+            roi_gray = gray[y:y+h, x:x+w]
+            roi_color = frame[y:y+h, x:x+w]
+            areas.append(w*h)
+
+        pog = False
+        if self.detecting:
+            self.save_frame(no_box)
+            if len(faces) > 0:
+                main_face = faces[areas.index(max(areas))]
+                cropped = image_pil.crop((x+(w/4), y+(h/1.75), x+w-(w/4), y+h))
+                mouth = np.asarray(cropped)
+                mouth = cv2.cvtColor(mouth, cv2.COLOR_BGR2GRAY)
+                pog = self.check_pog(mouth)
+
+        try:
+            (x, y, w, h) = faces[areas.index(max(areas))]
+            if pog:
+                cv2.rectangle(frame, (x,y), (x+w,y+h), (0, 255, 0), 2)
+            else:
+                cv2.rectangle(frame, (x,y), (x+w,y+h), (0, 0, 255), 2)
+        except:
+            pass
+
+        image_cv2 = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # convert to RGB color scheme
+        image_pil = Image.fromarray(image_cv2)  # convert to PIL image
+        img = ImageTk.PhotoImage(image_pil)     # convert to Tkinter image
 
         return img
+
+    def check_pog(self, mouth):
+        ret, thresh = cv2.threshold(mouth, 70, 255, cv2.THRESH_BINARY_INV)
+        cv2.imshow("mouth", thresh)
+        black_count = np.sum(thresh == 255)
+
+        pog = False
+        if len(self.black_values) < 10:
+            self.black_values.append(black_count)
+        else:
+            avg = sum(self.black_values) / len(self.black_values)
+            if black_count > (5 * avg):
+                pog = True
+            else:
+                pog = False
+                self.black_values.append(black_count)
+
+            self.pogs.append(pog)
+            if len(self.pogs) > 10:
+                self.pogs.pop(0)
+
+            if len(self.black_values) > 60:
+                self.black_values.pop(0)
+
+        return pog
     
     def toggle_start(self):
         self.detecting = True
 
     def toggle_end(self):
         self.detecting = False
+        self.black_values = []
         self.frames.clear()
 
     def record(self):
         if self.detecting:
+            self.pogs = []
+            self.detecting = False
+
             if "clips" not in os.listdir():
                 os.mkdir("clips")
 
             date = datetime.now()
             date_string = datetime.strftime(date, "pog-%d_%m_%y-%I_%M_%S_%p")
-            out = cv2.VideoWriter(f"clips/{date_string}.avi", fourcc, self.frame_rate, (640,480))
+            out = cv2.VideoWriter(f"clips/{date_string}.avi", fourcc, self.frame_rate, self.frame_size)
             for f in self.frames:
                 out.write(f)     # write each frame to 
             out.release()        # release video writer object
+
+            self.frames.clear()
     
     def save_frame(self, image):
         self.frames.append(image)
@@ -83,17 +158,39 @@ class PogDetector:
         if len(self.frames) > (int(self.frame_rate) * self.cap_length):
             self.frames.pop(0)
 
-pd = PogDetector(cap.get(cv2.CAP_PROP_FPS), 5)
+pd = PogDetector(cap, 5)
+
 while(True):
     img = pd.capture_frame()    # reset label image
     pd.camera_panel["image"] = img
+
+    if all(pd.pogs) and pd.pogs:
+        pd.record()
+
     root.update()           # update GUI
 
 root.mainloop()     # run GUI
 
 """
 TODO: Extra Features
-    Choose Directory Button
+    Display when button is pressed/not pressed? Display when recording? Prevent buttons from being pressed?
+    Display when a person is pogging or not
+
     Dark Theme
-    Record Screen Toggle Button
+    Enable/Disable Music overlay
+    Enable/Disable Screen Record
+    Where the webcam feed is placed (which corner)
+    About Menu (What does each icon mean?)
+"""
+
+"""
+TODO: SATURDAY
+    Merging the files app.py and hackathon.py
+    Record audio and add it to video
+        Otherwise, add music to the background of the video
+            Epic EDM song (10 seconds before pog, 5 seconds after)
+    Play sound when pog detected
+    Save video like lets play
+    Add more GUI features
+    Format the GitHub
 """
