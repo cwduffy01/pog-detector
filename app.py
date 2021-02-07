@@ -4,6 +4,7 @@ from PIL import Image, ImageTk
 from datetime import datetime
 import os
 import numpy as np
+import pyautogui
 
 root = Tk()     # begins Tk application
 root.title("PogDetector™")
@@ -11,7 +12,7 @@ root.geometry("720x660")
 root.resizable(False, False)
 
 cap = cv2.VideoCapture(0)
-fourcc = cv2.VideoWriter_fourcc(*'XVID')    # video codec
+fourcc = cv2.VideoWriter_fourcc(*"XVID")
 faceCascade = cv2.CascadeClassifier(r'haarcascade_frontalface_default.xml')
 detector = cv2.SimpleBlobDetector_create()
 
@@ -21,10 +22,11 @@ class PogDetector:
     recording = False   # if the gui is actively recording
     detecting = False   # if the pog is being detected
     saving = False
-    frames = []         # collection of frames for pst cap_length seconds
+    frames = []         # collection of frames for past cap_length seconds
     logo = ImageTk.PhotoImage(Image.open("light_logo.png"))
-    black_values = []
     pogs = []
+    start_times = []
+    pog_start = 0
 
     def __init__(self, cap, cap_length):
         self.frame_rate = cap.get(cv2.CAP_PROP_FPS)
@@ -51,13 +53,28 @@ class PogDetector:
         self.btn_end.place(anchor=N, y=600, x=385)
 
     def capture_frame(self):
+        self.start_times.append(datetime.now())
+
         ret, frame = cap.read()                 # read frame from webcam
         image_cv2 = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # convert to RGB color scheme
         image_pil = Image.fromarray(image_cv2)  # convert to PIL image
         img = ImageTk.PhotoImage(image_pil)     # convert to Tkinter image
 
-        no_box = frame.copy()
+        #takes picture of screen in Image type, converts the colors, and turns it back into an image
+        ss = pyautogui.screenshot()
+        ss = np.array(ss)
+        ss = cv2.cvtColor(ss, cv2.COLOR_BGR2RGB)
+        ss_pil = Image.fromarray(ss)
 
+        frame_pil = Image.fromarray(frame)
+        frame_pil = frame_pil.resize((int(len(frame[0])/2), int(len(frame)/2)))
+
+        ss_pil.paste(frame_pil)
+        overlay = np.asarray(ss_pil)
+
+        cv2.imshow("overlay", cv2.resize(overlay, (720, 405)))
+
+        no_box = frame.copy()
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         faces = faceCascade.detectMultiScale(
             gray,     
@@ -73,9 +90,11 @@ class PogDetector:
             roi_color = frame[y:y+h, x:x+w]
             areas.append(w*h)
 
+        if self.detecting or self.saving:
+            self.save_frame(overlay)
+
         pog = False
         if self.detecting:
-            self.save_frame(no_box)
             if len(faces) > 0:
                 main_face = faces[areas.index(max(areas))]
                 cropped = image_pil.crop((x+(w/4), y+(h/1.75), x+w-(w/4), y+h))
@@ -89,9 +108,8 @@ class PogDetector:
                 else:
                     cv2.rectangle(frame, (x,y), (x+w,y+h), (0, 0, 255), 2)
         if self.saving:
-            self.save_frame(no_box)
             self.pogs.clear()
-            if len(self.frames) >= ((self.cap_length + 5) * self.frame_rate) - 10:
+            if len(self.frames) >= 100:
                 self.record()
 
         image_cv2 = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # convert to RGB color scheme
@@ -131,9 +149,11 @@ class PogDetector:
         if "clips" not in os.listdir():
             os.mkdir("clips")
 
+        fps = len(self.frames) / ((datetime.now() - self.start_times[0]).total_seconds())
+
         date = datetime.now()
         date_string = datetime.strftime(date, "pog-%d_%m_%y-%I_%M_%S_%p")
-        out = cv2.VideoWriter(f"clips/{date_string}.avi", fourcc, self.frame_rate, self.frame_size)
+        out = cv2.VideoWriter(f"clips/{date_string}.avi", fourcc, fps, (1920, 1080))
         for f in self.frames:
             out.write(f)     # write each frame to 
         out.release()        # release video writer object
@@ -150,8 +170,9 @@ class PogDetector:
         # shorten frames to amount of frames in the videos
         if len(self.frames) > (self.frame_rate) * self.cap_length and not self.saving:
             self.frames.pop(0)
+            self.start_times.pop(0)
 
-pd = PogDetector(cap, 5)
+pd = PogDetector(cap, 10)
 
 while(True):
     img = pd.capture_frame()    # reset label image
@@ -160,6 +181,7 @@ while(True):
     if all(pd.pogs) and pd.pogs:
         pd.save()
         print("Saving...")
+        pd.pog_start = datetime.now()
 
     root.update()           # update GUI
 
