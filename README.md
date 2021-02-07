@@ -2,6 +2,7 @@
 The Goofy Goobers's submission for MLH's Impractical Hackers hackathon 2021
 
 ## Getting Started:
+- Ensure that you have the latest version of Python and Git
 - Use `cd` in the terminal to change the directory to where you want to save the project
 - Enter `git clone https://github.com/cwduffy01/pog-detector` to clone the repository
 - Enter `cd pog-detector`
