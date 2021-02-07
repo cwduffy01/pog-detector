@@ -5,6 +5,8 @@ from datetime import datetime
 import os
 import numpy as np
 import pyautogui
+import moviepy.editor as mpe
+import time
 
 root = Tk()     # begins Tk application
 root.title("PogDetector™")
@@ -31,7 +33,6 @@ class PogDetector:
     def __init__(self, cap, cap_length):
         self.frame_rate = cap.get(cv2.CAP_PROP_FPS)
         self.frame_size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-        print(self.frame_size)
         self.cap_length = cap_length
 
         # create label object with image from camera stream
@@ -53,7 +54,7 @@ class PogDetector:
         self.btn_end.place(anchor=N, y=600, x=385)
 
     def capture_frame(self):
-        self.start_times.append(datetime.now())
+        self.start_times.append(time.time())
 
         ret, frame = cap.read()                 # read frame from webcam
         image_cv2 = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # convert to RGB color scheme
@@ -149,15 +150,20 @@ class PogDetector:
         if "clips" not in os.listdir():
             os.mkdir("clips")
 
-        fps = len(self.frames) / ((datetime.now() - self.start_times[0]).total_seconds())
+        fps = len(self.frames) / (time.time() - self.start_times[0])
 
         date = datetime.now()
         date_string = datetime.strftime(date, "pog-%d_%m_%y-%I_%M_%S_%p")
-        out = cv2.VideoWriter(f"clips/{date_string}.avi", fourcc, fps, (1920, 1080))
+        out = cv2.VideoWriter(f"vid.avi", fourcc, fps, (1920, 1080))
         for f in self.frames:
             out.write(f)     # write each frame to 
         out.release()        # release video writer object
 
+        vid = mpe.VideoFileClip("vid.avi")
+        vid = vid.subclip(self.pog_start - self.start_times[0] - 10 - 1.5, self.pog_start - self.start_times[0] + 5 - 1.5)
+        final_vid = vid.set_audio(mpe.AudioFileClip("pog_music.mp3"))
+        final_vid.write_videofile(f"clips/{date_string}.mp4", fps=fps, codec="libx264")
+        os.remove("vid.avi")
         self.frames.clear()
         self.detecting = True
     
@@ -181,7 +187,7 @@ while(True):
     if all(pd.pogs) and pd.pogs:
         pd.save()
         print("Saving...")
-        pd.pog_start = datetime.now()
+        pd.pog_start = time.time()
 
     root.update()           # update GUI
 
