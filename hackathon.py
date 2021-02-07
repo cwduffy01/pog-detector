@@ -24,6 +24,10 @@ def record():
     stopRecord = 0
     framesAfterPog = 0
     
+    readyToRecord = False
+    stopRecord = 0
+    framesAfterPog = 0
+    
     while(True):
         start_times.append(time.time())
         
@@ -47,7 +51,6 @@ def record():
         if(len(temp) > 200):
             temp.pop(0)
             start_times.pop(0)
-        
         #Face recognition==========================================================================
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         faces = faceCascade.detectMultiScale(
@@ -143,4 +146,4 @@ def record():
     
 
 record()
-    
+
