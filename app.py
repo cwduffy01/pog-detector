@@ -1,3 +1,4 @@
+# HAPPY BIRTHDAY SOREN NIELSEN
 from tkinter import *
 import cv2
 from PIL import Image, ImageTk
@@ -17,7 +18,11 @@ root.resizable(False, False)
 cap = cv2.VideoCapture(0)
 fourcc = cv2.VideoWriter_fourcc(*"XVID")
 faceCascade = cv2.CascadeClassifier(r'assets/haarcascade_frontalface_default.xml')
-detector = cv2.SimpleBlobDetector_create()
+
+params = cv2.SimpleBlobDetector_Params()
+params.minThreshold = 10
+params.maxThreshold = 255
+detector = cv2.SimpleBlobDetector_create(params)
 
 class PogDetector:
     frame_rate = 0      # the frame rate of the webcam in fps
@@ -124,10 +129,12 @@ class PogDetector:
 
     def check_pog(self, mouth):
         keypoints = detector.detect(mouth)
+        im_with_keypoints = cv2.drawKeypoints(mouth, keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+        cv2.imshow("mouth", im_with_keypoints)
         pog = False
         if keypoints:
             for kp in keypoints:
-                if 30 <= kp.size <= 50:
+                if 30 <= kp.size <= 60:
                     pog = True
                     break
 
@@ -199,21 +206,3 @@ while(True):
     root.update()           # update GUI
 
 root.mainloop()     # run GUI
-
-"""
-TODO: Extra Features
-    Display when button is pressed/not pressed? Display when recording? Prevent buttons from being pressed?
-    Display when a person is pogging or not
-
-    Dark Theme
-    Enable/Disable Music overlay
-    Enable/Disable Screen Record
-    Where the webcam feed is placed (which corner)
-    About Menu (What does each icon mean?)
-"""
-
-"""
-TODO: SATURDAY
-    Format the GitHub
-        requirements.txt
-"""
