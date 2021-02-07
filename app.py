@@ -25,6 +25,7 @@ class PogDetector:
     recording = False   # if the gui is actively recording
     detecting = False   # if the pog is being detected
     saving = False
+    full = False
     frames = []         # collection of frames for past cap_length seconds
     logo = ImageTk.PhotoImage(Image.open("assets/logo.png"))
     pogs = []
@@ -53,6 +54,9 @@ class PogDetector:
 
         self.btn_start.place(anchor=N, y=600, x=335)
         self.btn_end.place(anchor=N, y=600, x=385)
+
+        self.status = Label(root, text="", font=("Consolas", 14))
+        self.status.place(anchor=NW, y=585, x=33)
 
     def capture_frame(self):
         self.start_times.append(time.time())
@@ -109,7 +113,7 @@ class PogDetector:
                     cv2.rectangle(frame, (x,y), (x+w,y+h), (0, 0, 255), 2)
         if self.saving:
             self.pogs.clear()
-            if len(self.frames) >= 100:
+            if len(self.frames) >= 450:
                 self.record()
 
         image_cv2 = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # convert to RGB color scheme
@@ -153,20 +157,23 @@ class PogDetector:
 
         date = datetime.now()
         date_string = datetime.strftime(date, "pog-%d_%m_%y-%I_%M_%S_%p")
-        out = cv2.VideoWriter(f"vid.avi", fourcc, fps, (1920, 1080))
+        out = cv2.VideoWriter("clips/last_vid_no_audio.avi", fourcc, fps, (1920, 1080))
         for f in self.frames:
             out.write(f)     # write each frame to 
         out.release()        # release video writer object
 
-        vid = mpe.VideoFileClip("vid.avi")
-        vid = vid.subclip(self.pog_start - self.start_times[0] - 10 - 1.5, self.pog_start - self.start_times[0] + 5 - 1.5)
+        vid = mpe.VideoFileClip("clips/last_vid_no_audio.avi")
+        adjust = 2
+        vid = vid.subclip(self.pog_start - self.start_times[0] - 10 - adjust, self.pog_start - self.start_times[0] + 5 - adjust)
         final_vid = vid.set_audio(mpe.AudioFileClip("assets/pog_music.mp3"))
         final_vid.write_videofile(f"clips/{date_string}.mp4", fps=fps, codec="libx264")
-        os.remove("vid.avi")
         self.frames.clear()
+        self.full = False
+        self.status["text"] = ""
         self.detecting = True
     
     def save(self):
+        self.status["text"] = "Saving..."
         self.saving = True
         self.detecting = False
     
@@ -174,6 +181,8 @@ class PogDetector:
         self.frames.append(image)
         # shorten frames to amount of frames in the videos
         if len(self.frames) > (self.frame_rate) * self.cap_length and not self.saving:
+            self.full = True
+            self.status["text"] = "Ready to record"
             self.frames.pop(0)
             self.start_times.pop(0)
 
@@ -183,9 +192,8 @@ while(True):
     img = pd.capture_frame()    # reset label image
     pd.camera_panel["image"] = img
 
-    if all(pd.pogs) and pd.pogs:
+    if all(pd.pogs) and pd.pogs and pd.full:
         pd.save()
-        print("Saving...")
         pd.pog_start = time.time()
 
     root.update()           # update GUI
