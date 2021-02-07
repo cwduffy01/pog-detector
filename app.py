@@ -86,6 +86,11 @@ class PogDetector:
                 mouth = np.asarray(cropped)
                 mouth = cv2.cvtColor(mouth, cv2.COLOR_BGR2GRAY)
                 pog = self.check_pog(mouth)
+        if self.saving:
+            self.save_frame(no_box)
+            self.pogs.clear()
+            if len(self.frames) >= ((self.cap_length + 5) * self.frame_rate) - 10:
+                self.record()
 
         try:
             (x, y, w, h) = faces[areas.index(max(areas))]
@@ -136,26 +141,29 @@ class PogDetector:
         self.frames.clear()
 
     def record(self):
-        if self.detecting:
-            self.pogs = []
-            self.detecting = False
+        self.saving = False
 
-            if "clips" not in os.listdir():
-                os.mkdir("clips")
+        if "clips" not in os.listdir():
+            os.mkdir("clips")
 
-            date = datetime.now()
-            date_string = datetime.strftime(date, "pog-%d_%m_%y-%I_%M_%S_%p")
-            out = cv2.VideoWriter(f"clips/{date_string}.avi", fourcc, self.frame_rate, self.frame_size)
-            for f in self.frames:
-                out.write(f)     # write each frame to 
-            out.release()        # release video writer object
+        date = datetime.now()
+        date_string = datetime.strftime(date, "pog-%d_%m_%y-%I_%M_%S_%p")
+        out = cv2.VideoWriter(f"clips/{date_string}.avi", fourcc, self.frame_rate, self.frame_size)
+        for f in self.frames:
+            out.write(f)     # write each frame to 
+        out.release()        # release video writer object
 
-            self.frames.clear()
+        self.frames.clear()
+        self.detecting = True
+    
+    def save(self):
+        self.saving = True
+        self.detecting = False
     
     def save_frame(self, image):
         self.frames.append(image)
         # shorten frames to amount of frames in the videos
-        if len(self.frames) > (int(self.frame_rate) * self.cap_length):
+        if len(self.frames) > (self.frame_rate) * self.cap_length and not self.saving:
             self.frames.pop(0)
 
 pd = PogDetector(cap, 5)
@@ -165,7 +173,7 @@ while(True):
     pd.camera_panel["image"] = img
 
     if all(pd.pogs) and pd.pogs:
-        pd.record()
+        pd.save()
 
     root.update()           # update GUI
 
