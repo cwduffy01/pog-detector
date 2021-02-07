@@ -47,13 +47,8 @@ class PogDetector:
         self.btn_end = Button(root, image=stop, command=self.toggle_end, height=35, width=35)
         self.btn_end.image = stop
 
-        record = ImageTk.PhotoImage(Image.open("record.png"))
-        self.btn_record = Button(root, image=record, command=self.record, height=35, width=35)
-        self.btn_record.image = record
-
-        self.btn_start.place(anchor=N, y=600, x=360)
-        self.btn_end.place(anchor=N, y=600, x=410)
-        self.btn_record.place(anchor=N, y=600, x=310)
+        self.btn_start.place(anchor=N, y=600, x=335)
+        self.btn_end.place(anchor=N, y=600, x=385)
 
     def capture_frame(self):
         ret, frame = cap.read()                 # read frame from webcam
@@ -87,20 +82,17 @@ class PogDetector:
                 mouth = np.asarray(cropped)
                 mouth = cv2.cvtColor(mouth, cv2.COLOR_BGR2GRAY)
                 pog = self.check_pog(mouth)
+
+                (x, y, w, h) = main_face
+                if pog:
+                    cv2.rectangle(frame, (x,y), (x+w,y+h), (0, 255, 0), 2)
+                else:
+                    cv2.rectangle(frame, (x,y), (x+w,y+h), (0, 0, 255), 2)
         if self.saving:
             self.save_frame(no_box)
             self.pogs.clear()
             if len(self.frames) >= ((self.cap_length + 5) * self.frame_rate) - 10:
                 self.record()
-
-        try:
-            (x, y, w, h) = faces[areas.index(max(areas))]
-            if pog:
-                cv2.rectangle(frame, (x,y), (x+w,y+h), (0, 255, 0), 2)
-            else:
-                cv2.rectangle(frame, (x,y), (x+w,y+h), (0, 0, 255), 2)
-        except:
-            pass
 
         image_cv2 = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # convert to RGB color scheme
         image_pil = Image.fromarray(image_cv2)  # convert to PIL image
@@ -125,11 +117,13 @@ class PogDetector:
     
     def toggle_start(self):
         self.detecting = True
+        self.btn_start.config(relief="sunken")
 
     def toggle_end(self):
         self.detecting = False
         self.black_values = []
         self.frames.clear()
+        self.btn_start.config(relief="raised")
 
     def record(self):
         self.saving = False
