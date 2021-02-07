@@ -11,11 +11,12 @@ import time
 root = Tk()     # begins Tk application
 root.title("PogDetector™")
 root.geometry("720x660")
+root.iconbitmap("assets/pog.ico")
 root.resizable(False, False)
 
 cap = cv2.VideoCapture(0)
 fourcc = cv2.VideoWriter_fourcc(*"XVID")
-faceCascade = cv2.CascadeClassifier(r'haarcascade_frontalface_default.xml')
+faceCascade = cv2.CascadeClassifier(r'assets/haarcascade_frontalface_default.xml')
 detector = cv2.SimpleBlobDetector_create()
 
 class PogDetector:
@@ -25,7 +26,7 @@ class PogDetector:
     detecting = False   # if the pog is being detected
     saving = False
     frames = []         # collection of frames for past cap_length seconds
-    logo = ImageTk.PhotoImage(Image.open("light_logo.png"))
+    logo = ImageTk.PhotoImage(Image.open("assets/logo.png"))
     pogs = []
     start_times = []
     pog_start = 0
@@ -42,11 +43,11 @@ class PogDetector:
         self.camera_panel.place(anchor=N, y=100, x=360)
 
         # create button objects
-        play = ImageTk.PhotoImage(Image.open("start.png"))
+        play = ImageTk.PhotoImage(Image.open("assets/start.png"))
         self.btn_start = Button(root, image=play, command=self.toggle_start, height=35, width=35)
         self.btn_start.image = play
 
-        stop = ImageTk.PhotoImage(Image.open("stop.png"))
+        stop = ImageTk.PhotoImage(Image.open("assets/stop.png"))
         self.btn_end = Button(root, image=stop, command=self.toggle_end, height=35, width=35)
         self.btn_end.image = stop
 
@@ -72,8 +73,6 @@ class PogDetector:
 
         ss_pil.paste(frame_pil)
         overlay = np.asarray(ss_pil)
-
-        cv2.imshow("overlay", cv2.resize(overlay, (720, 405)))
 
         no_box = frame.copy()
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -161,7 +160,7 @@ class PogDetector:
 
         vid = mpe.VideoFileClip("vid.avi")
         vid = vid.subclip(self.pog_start - self.start_times[0] - 10 - 1.5, self.pog_start - self.start_times[0] + 5 - 1.5)
-        final_vid = vid.set_audio(mpe.AudioFileClip("pog_music.mp3"))
+        final_vid = vid.set_audio(mpe.AudioFileClip("assets/pog_music.mp3"))
         final_vid.write_videofile(f"clips/{date_string}.mp4", fps=fps, codec="libx264")
         os.remove("vid.avi")
         self.frames.clear()
@@ -207,12 +206,6 @@ TODO: Extra Features
 
 """
 TODO: SATURDAY
-    Merging the files app.py and hackathon.py
-    Record audio and add it to video
-        Otherwise, add music to the background of the video
-            Epic EDM song (10 seconds before pog, 5 seconds after)
-    Play sound when pog detected
-    Save video like lets play
-    Add more GUI features
     Format the GitHub
+        requirements.txt
 """
