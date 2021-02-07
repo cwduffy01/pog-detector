@@ -13,6 +13,7 @@ root.resizable(False, False)
 cap = cv2.VideoCapture(0)
 fourcc = cv2.VideoWriter_fourcc(*'XVID')    # video codec
 faceCascade = cv2.CascadeClassifier(r'haarcascade_frontalface_default.xml')
+detector = cv2.SimpleBlobDetector_create()
 
 class PogDetector:
     frame_rate = 0      # the frame rate of the webcam in fps
@@ -108,27 +109,17 @@ class PogDetector:
         return img
 
     def check_pog(self, mouth):
-        ret, thresh = cv2.threshold(mouth, 70, 255, cv2.THRESH_BINARY_INV)
-        cv2.imshow("mouth", thresh)
-        black_count = np.sum(thresh == 255)
-
+        keypoints = detector.detect(mouth)
         pog = False
-        if len(self.black_values) < 10:
-            self.black_values.append(black_count)
-        else:
-            avg = sum(self.black_values) / len(self.black_values)
-            if black_count > (5 * avg):
-                pog = True
-            else:
-                pog = False
-                self.black_values.append(black_count)
+        if keypoints:
+            for kp in keypoints:
+                if 30 <= kp.size <= 50:
+                    pog = True
+                    break
 
-            self.pogs.append(pog)
-            if len(self.pogs) > 10:
-                self.pogs.pop(0)
-
-            if len(self.black_values) > 60:
-                self.black_values.pop(0)
+        self.pogs.append(pog)
+        if len(self.pogs) > 10:
+            self.pogs.pop(0)
 
         return pog
     
@@ -174,6 +165,7 @@ while(True):
 
     if all(pd.pogs) and pd.pogs:
         pd.save()
+        print("Saving...")
 
     root.update()           # update GUI
 
